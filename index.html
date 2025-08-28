@@ -16,7 +16,7 @@
       --border:rgba(255,255,255,.1);
       --shadow:0 12px 30px rgba(0,0,0,.35);
     }
-    
+
     .light{
       --bg:#f5f7fb;
       --panel:#ffffff;
@@ -37,7 +37,7 @@
       display:grid; place-items:center; padding:24px;
     }
     .shell{width:min(920px,100%); display:grid; gap:16px;}
-    .card{background:var(--panel); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow);}
+    .card{background:var(--panel); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow);} 
     .header{display:flex; justify-content:space-between; align-items:center; padding:14px 16px}
     .brand{display:flex; align-items:center; gap:10px}
     .logo{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--brand),#9fd0ff); display:grid; place-items:center; color:white; font-weight:700; box-shadow:0 6px 18px rgba(74,163,255,.35)}
@@ -58,19 +58,23 @@
     .bot .bubble{background:var(--bot)}
     .meta{margin-top:4px; font-size:12px; color:var(--muted)}
 
-    .bot-buttons{display:flex; gap:6px; margin-top:6px; justify-content:flex-end}
-    .bot-buttons button{background:var(--brand); color:#fff; border:none; border-radius:6px; padding:4px 8px; font-size:12px; cursor:pointer;}
-    .bot-buttons button:hover{opacity:.9;}
+    .bot-buttons{display:flex; gap:6px; margin-top:8px; justify-content:flex-end}
+    .speak-btn{display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; border:1px solid var(--border); border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; box-shadow:0 6px 16px rgba(74,163,255,.35)}
+    .speak-btn:hover{opacity:.95}
+    .speak-btn[aria-pressed="true"]{filter:saturate(1.15)}
+    .speak-icon{width:14px; height:14px; display:inline-block}
 
     .composer{display:flex; gap:10px; padding:12px; border-top:1px solid var(--border)}
     .composer .field{flex:1; position:relative}
-    .input{width:100%; background:transparent; color:var(--text); border:1px solid var(--border); border-radius:14px; padding:12px 44px 12px 12px; resize:none; min-height:44px; max-height:160px; outline:none}
+    .input{width:100%; background:transparent; color:var(--text); border:1px solid var(--border); border-radius:14px; padding:12px 92px 12px 12px; resize:none; min-height:44px; max-height:160px; outline:none}
     .input::placeholder{color:var(--muted)}
-    .send, .voice-btn{position:absolute; bottom:6px; width:36px; height:32px; border-radius:10px; display:grid; place-items:center; cursor:pointer; color:white; border:1px solid var(--border); box-shadow:0 6px 16px rgba(74,163,255,.35)}
-    .send{right:6px; background:var(--brand);}
-    .voice-btn{right:50px; background:#28a463;}
-    .send:active, .voice-btn:active{transform:translateY(1px)}
-    
+    .send{position:absolute; bottom:6px; right:6px; width:36px; height:32px; border-radius:10px; display:grid; place-items:center; cursor:pointer; color:white; border:1px solid var(--border); box-shadow:0 6px 16px rgba(74,163,255,.35); background:var(--brand)}
+    .send:active{transform:translateY(1px)}
+
+    /* --- Mic button (added) --- */
+    .mic{position:absolute; bottom:6px; right:48px; width:36px; height:32px; border-radius:10px; display:grid; place-items:center; cursor:pointer; color:var(--text); border:1px solid var(--border); background:transparent}
+    .mic:active{transform:translateY(1px)}
+    .mic[aria-pressed="true"]{background:var(--brand); color:#fff; box-shadow:0 6px 16px rgba(74,163,255,.35)}
 
     .dots{display:inline-flex; gap:4px; vertical-align:middle}
     .dot{width:6px; height:6px; border-radius:50%; background:#a5b4fc; opacity:.7; animation:b 1.4s infinite}
@@ -107,7 +111,16 @@
     <section class="card composer" aria-label="Message composer">
       <div class="field">
         <textarea id="input" class="input" rows="1" placeholder="Type your message… (Enter to send, Shift+Enter = new line)" aria-label="Message input"></textarea>
-        <button id="voice-btn" class="voice-btn" title="Voice Input">🎤</button>
+        <!-- No background mic button -->
+        <!-- Mic button (added) -->
+        <button id="mic" class="mic" aria-label="Start voice input" title="Voice input">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <path d="M12 4a3 3 0 00-3 3v5a3 3 0 006 0V7a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M5 11a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button id="send" class="send" aria-label="Send message" title="Send">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -123,14 +136,15 @@
   const chat = document.getElementById('chat');
   const input = document.getElementById('input');
   const sendBtn = document.getElementById('send');
-  const voiceBtn = document.getElementById('voice-btn');
+  const micBtn = document.getElementById('mic'); // added
   const themeBtn = document.getElementById('theme-btn');
   const clearBtn = document.getElementById('clear-btn');
   const STORE_KEY = 'soc-chat-history';
   const THEME_KEY = 'soc-chat-theme';
 
-  let recognition = null;
-  let listening = false;
+  // --- TTS State ---
+  let currentUtterance = null;
+  let currentSpeakBtn = null;
 
   // Theme
   function applyTheme(theme){
@@ -159,15 +173,10 @@
     const m = el('div','meta'); m.textContent = meta || now();
     wrap.appendChild(bubble); wrap.appendChild(m);
 
-    // Add TTS only after bot reply
     if(kind==='bot'){
       const btnWrap = el('div','bot-buttons');
-      const ttsBtn = el('button');
-      ttsBtn.className = 'voice-btn'; // blue round button
-      ttsBtn.innerHTML = '🎤';
-      ttsBtn.title = 'Voice Input';
-      ttsBtn.onclick = toggleVoice;
-      btnWrap.appendChild(ttsBtn);
+      const speakBtn = makeSpeakButton(bubble);
+      btnWrap.appendChild(speakBtn);
       wrap.appendChild(btnWrap);
     }
 
@@ -191,37 +200,105 @@
   function save(){ localStorage.setItem(STORE_KEY, chat.innerHTML); }
   function load(){ const s=localStorage.getItem(STORE_KEY); if(s) chat.innerHTML=s; }
 
-  function speakText(text){
-    if(!window.speechSynthesis) return alert('TTS not supported');
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang='en-US';
-    window.speechSynthesis.speak(utter);
+  // Reattach TTS buttons for any messages restored from localStorage
+  function rehydrateSpeakButtons(){
+    const botRows = chat.querySelectorAll('.row.bot');
+    botRows.forEach(row => {
+      const bubble = row.querySelector('.bubble');
+      const btnArea = row.querySelector('.bot-buttons');
+      if (!bubble) return;
+
+      // Remove stale buttons saved in HTML (no listeners)
+      if (btnArea) btnArea.innerHTML = '';
+
+      // Recreate and append a live button
+      const btn = makeSpeakButton(bubble);
+      let container = btnArea;
+      if (!container){
+        container = el('div','bot-buttons');
+        row.querySelector('div:not(.avatar)').appendChild(container);
+      }
+      container.appendChild(btn);
+    });
   }
 
-  function toggleVoice(){
-  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
-    return alert('Speech recognition not supported');
-  }
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // --- Speak Button (per bot message) ---
+  function makeSpeakButton(bubble){
+    const btn = el('button','speak-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-label','Play response');
+    btn.setAttribute('aria-pressed','false');
+    btn.innerHTML = iconSpeaker() + '<span>Speak</span>';
 
-  if(listening){
-    recognition.stop();
-    listening = false;
-    voiceBtn.style.background = 'var(--brand)'; // reset to send color
-  } else {
-    recognition = new SpeechRecognition();
-    recognition.lang='en-US';
-    recognition.interimResults=false;
-    recognition.maxAlternatives=1;
-    recognition.start();
-    listening = true;
-    voiceBtn.style.background = '#2b7cff'; // optional active color
-    recognition.onresult = e => { input.value = e.results[0][0].transcript; input.focus(); };
-    recognition.onend = () => { listening = false; voiceBtn.style.background = 'var(--brand)'; };
-    recognition.onerror = e => { console.error(e); listening=false; voiceBtn.style.background = 'var(--brand)'; };
-  }
-}
+    btn.addEventListener('click', ()=>{
+      if(!('speechSynthesis' in window)){
+        alert('Text-to-Speech not supported in this browser.');
+        return;
+      }
+      const text = bubble.textContent.trim();
+      if(!text) return;
 
+      // If this button is already playing -> stop.
+      const isActive = btn.getAttribute('aria-pressed') === 'true';
+      if(isActive){
+        stopSpeaking(btn);
+        return;
+      }
+
+      // Otherwise start speaking this bubble (and cancel any existing playback)
+      startSpeaking(text, btn);
+    });
+
+    return btn;
+  }
+
+  function startSpeaking(text, btn){
+    // Cancel any ongoing speech first to avoid overlaps
+    if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
+      window.speechSynthesis.cancel();
+    }
+
+    // Reset previous button state if any
+    if(currentSpeakBtn && currentSpeakBtn !== btn){
+      resetSpeakBtn(currentSpeakBtn);
+    }
+
+    currentUtterance = new SpeechSynthesisUtterance(text);
+    currentUtterance.lang = 'en-US';
+    // Optional: slightly slower for clarity
+    currentUtterance.rate = 1.0;
+
+    currentUtterance.onstart = () => {
+      currentSpeakBtn = btn;
+      btn.setAttribute('aria-pressed','true');
+      btn.setAttribute('aria-label','Pause');
+      btn.innerHTML = iconStop() + '<span>Stop</span>';
+    };
+    currentUtterance.onend = () => { resetSpeakBtn(btn); };
+    currentUtterance.onerror = () => { resetSpeakBtn(btn); };
+
+    window.speechSynthesis.speak(currentUtterance);
+  }
+
+  function stopSpeaking(btn){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    resetSpeakBtn(btn);
+  }
+
+  function resetSpeakBtn(btn){
+    btn.setAttribute('aria-pressed','false');
+    btn.setAttribute('aria-label','Play response');
+    btn.innerHTML = iconSpeaker() + '<span>Speak</span>';
+    if(currentSpeakBtn === btn) currentSpeakBtn = null;
+    currentUtterance = null;
+  }
+
+  function iconSpeaker(){
+    return '<svg class="speak-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M4 10v4h3l4 3V7L7 10H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 8a5 5 0 010 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17.5 5.5a8.5 8.5 0 010 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  }
+  function iconStop(){
+    return '<svg class="speak-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/></svg>';
+  }
 
   async function send(text){
     const value = (text ?? input.value).trim();
@@ -253,11 +330,93 @@
   input.addEventListener('input', autoGrow);
   input.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
   sendBtn.addEventListener('click', ()=>send());
-  voiceBtn.addEventListener('click', toggleVoice); // keeps initial input voice as backup
-  clearBtn.addEventListener('click', ()=>{ if(confirm('Clear the entire conversation?')){ chat.innerHTML=''; save(); } });
+
+  clearBtn.addEventListener('click', ()=>{ 
+    if(confirm('Clear the entire conversation?')){ 
+      chat.innerHTML=''; save(); 
+      // Also stop any ongoing speech on clear
+      if(window.speechSynthesis){ window.speechSynthesis.cancel(); }
+      currentUtterance=null; currentSpeakBtn=null;
+    } 
+  });
+
+  // --- Mic / Speech-to-Text (added) ---
+  (function initMic(){
+    if(!micBtn) return;
+    micBtn.setAttribute('aria-pressed','false');
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){
+      micBtn.title = 'Speech-to-Text not supported in this browser';
+      micBtn.style.opacity = '.6';
+      micBtn.style.cursor = 'not-allowed';
+      micBtn.addEventListener('click', ()=>alert('Speech-to-Text not supported in this browser.'));
+      return;
+    }
+
+    let recognition = new SR();
+    recognition.continuous = false;          // single utterance
+    recognition.interimResults = true;       // show interim text live
+    recognition.lang = 'en-US';
+
+    let listening = false;
+    let baseText = '';
+
+    function iconMic(){
+      return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M12 4a3 3 0 00-3 3v5a3 3 0 006 0V7a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 11a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    }
+
+    function setMicActive(active){
+      listening = active;
+      micBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      micBtn.setAttribute('aria-label', active ? 'Stop voice input' : 'Start voice input');
+      micBtn.title = active ? 'Listening… click to stop' : 'Voice input';
+      micBtn.innerHTML = active ? iconStop() : iconMic();
+    }
+
+    micBtn.innerHTML = iconMic();
+    micBtn.addEventListener('click', ()=>{
+      if(listening){
+        try{ recognition.stop(); }catch(e){}
+        return;
+      }
+      baseText = input.value;
+      try{
+        recognition.start();
+      }catch(e){
+        // start can throw if called too quickly; ignore
+      }
+    });
+
+    recognition.onstart = ()=>{ setMicActive(true); };
+
+    recognition.onresult = (e)=>{
+      let interim = '';
+      let final = '';
+      for(let i=e.resultIndex; i<e.results.length; i++){
+        const chunk = e.results[i][0].transcript;
+        if(e.results[i].isFinal) final += chunk;
+        else interim += chunk;
+      }
+      const combined = (final + interim).trim();
+      input.value = baseText + (baseText && combined ? ' ' : '') + combined;
+      autoGrow();
+    };
+
+    recognition.onerror = ()=>{ setMicActive(false); };
+
+    recognition.onend = ()=>{
+      setMicActive(false);
+      // Keep whatever is in the input (final text already applied in onresult)
+      input.focus();
+    };
+  })();
 
   // Initialize
   load();
+  // ensure saved messages get fresh, working Speak buttons after reload
+  rehydrateSpeakButtons();
+
   if(!chat.children.length){
     const welcome = messageRow('bot','Hi, I am SOC Analyst Advisor. Ask me about alerts, incidents, or security events.');
     chat.appendChild(welcome);
@@ -266,7 +425,6 @@
   }
   scrollToEnd();
 })();
-
 </script>
 </body>
 </html>
