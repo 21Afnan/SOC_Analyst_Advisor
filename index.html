@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SOC Analyst Advisor</title>
+  <style>
+    :root{
+      --bg:#1a2030;
+      --panel:#1f293a;
+      --muted:#8a97b0;
+      --text:#f0f2f9;
+      --brand:#4aa3ff;
+      --me:#2c7b53;
+      --bot:#253865;
+      --border:rgba(255,255,255,.1);
+      --shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    
+    .light{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --muted:#5b667a;
+      --text:#12141d;
+      --brand:#2b7cff;
+      --me:#e8f5ed;
+      --bot:#eef2ff;
+      --border:rgba(0,0,0,.08);
+      --shadow:0 10px 28px rgba(23,24,35,.1);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      background:radial-gradient(1200px 800px at 10% 10%,#0e1636 0%,transparent 55%), radial-gradient(1200px 800px at 90% 30%,#1b2b63 0%,transparent 45%), var(--bg);
+      color:var(--text);
+      display:grid; place-items:center; padding:24px;
+    }
+    .shell{width:min(920px,100%); display:grid; gap:16px;}
+    .card{background:var(--panel); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow);}
+    .header{display:flex; justify-content:space-between; align-items:center; padding:14px 16px}
+    .brand{display:flex; align-items:center; gap:10px}
+    .logo{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--brand),#9fd0ff); display:grid; place-items:center; color:white; font-weight:700; box-shadow:0 6px 18px rgba(74,163,255,.35)}
+    .title{font-weight:700}
+    .sub{color:var(--muted); font-size:12px}
+    .right-actions{display:flex; align-items:center; gap:8px}
+    .btn{border:1px solid var(--border); background:transparent; color:var(--text); padding:8px 10px; border-radius:10px; cursor:pointer}
+    .btn:hover{border-color:rgba(255,255,255,.18)}
+
+    .chat{height:64vh; min-height:460px; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:14px; scroll-behavior:smooth}
+    .row{display:flex; gap:10px; align-items:flex-end}
+    .row.me{justify-content:flex-end}
+    .avatar{flex:0 0 36px; height:36px; border-radius:12px; display:grid; place-items:center; font-size:14px; font-weight:700}
+    .avatar.bot{background:linear-gradient(135deg,#1f2a54,#32468f); color:#cfe0ff}
+    .avatar.me{background:linear-gradient(135deg,#145d37,#28a463); color:#e6fff0}
+    .bubble{max-width:70%; padding:12px 14px; border-radius:14px; border:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,.1); position:relative;}
+    .me .bubble{background:var(--me)}
+    .bot .bubble{background:var(--bot)}
+    .meta{margin-top:4px; font-size:12px; color:var(--muted)}
+
+    .bot-buttons{display:flex; gap:6px; margin-top:6px; justify-content:flex-end}
+    .bot-buttons button{background:var(--brand); color:#fff; border:none; border-radius:6px; padding:4px 8px; font-size:12px; cursor:pointer;}
+    .bot-buttons button:hover{opacity:.9;}
+
+    .composer{display:flex; gap:10px; padding:12px; border-top:1px solid var(--border)}
+    .composer .field{flex:1; position:relative}
+    .input{width:100%; background:transparent; color:var(--text); border:1px solid var(--border); border-radius:14px; padding:12px 44px 12px 12px; resize:none; min-height:44px; max-height:160px; outline:none}
+    .input::placeholder{color:var(--muted)}
+    .send, .voice-btn{position:absolute; bottom:6px; width:36px; height:32px; border-radius:10px; display:grid; place-items:center; cursor:pointer; color:white; border:1px solid var(--border); box-shadow:0 6px 16px rgba(74,163,255,.35)}
+    .send{right:6px; background:var(--brand);}
+    .voice-btn{right:50px; background:#28a463;}
+    .send:active, .voice-btn:active{transform:translateY(1px)}
+    
+
+    .dots{display:inline-flex; gap:4px; vertical-align:middle}
+    .dot{width:6px; height:6px; border-radius:50%; background:#a5b4fc; opacity:.7; animation:b 1.4s infinite}
+    .dot:nth-child(2){animation-delay:.2s}
+    .dot:nth-child(3){animation-delay:.4s}
+    @keyframes b{0%,80%,100%{transform:scale(.6)} 40%{transform:scale(1)}}
+
+    @media (max-width:640px){
+      .chat{height:64vh; min-height:56vh}
+      .bubble{max-width:78%}
+      .title{font-size:16px}
+      .sub{display:none}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card header" aria-label="Chat header">
+      <div class="brand">
+        <div class="logo" aria-hidden>AI</div>
+        <div>
+          <div class="title">SOC Analyst Advisor</div>
+          <div class="sub"><span id="status-dot" aria-hidden>●</span> Ready · No server required</div>
+        </div>
+      </div>
+      <div class="right-actions">
+        <button class="btn" id="clear-btn" title="Clear conversation">Clear</button>
+        <button class="btn" id="theme-btn" title="Toggle theme">Light/Dark</button>
+      </div>
+    </section>
+
+    <section id="chat" class="card chat" aria-live="polite" aria-label="Conversation area"></section>
+
+    <section class="card composer" aria-label="Message composer">
+      <div class="field">
+        <textarea id="input" class="input" rows="1" placeholder="Type your message… (Enter to send, Shift+Enter = new line)" aria-label="Message input"></textarea>
+        <button id="voice-btn" class="voice-btn" title="Voice Input">🎤</button>
+        <button id="send" class="send" aria-label="Send message" title="Send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const voiceBtn = document.getElementById('voice-btn');
+  const themeBtn = document.getElementById('theme-btn');
+  const clearBtn = document.getElementById('clear-btn');
+  const STORE_KEY = 'soc-chat-history';
+  const THEME_KEY = 'soc-chat-theme';
+
+  let recognition = null;
+  let listening = false;
+
+  // Theme
+  function applyTheme(theme){
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem(THEME_KEY, theme);
+  }
+  const savedTheme = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  applyTheme(savedTheme);
+  themeBtn.addEventListener('click', ()=>{
+    const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+    applyTheme(next);
+  });
+
+  const el = (tag, cls) => { const x = document.createElement(tag); if(cls) x.className=cls; return x; };
+  const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const scrollToEnd = () => chat.scrollTop = chat.scrollHeight;
+
+  // Message rendering
+  function messageRow(kind,text,meta){
+    const row = el('div', `row ${kind}`);
+    const avatar = el('div', `avatar ${kind}`);
+    avatar.textContent = kind==='me'?'ME':'BOT';
+    const wrap = el('div');
+    const bubble = el('div','bubble');
+    bubble.innerHTML = text.replace(/\n/g,'<br>');
+    const m = el('div','meta'); m.textContent = meta || now();
+    wrap.appendChild(bubble); wrap.appendChild(m);
+
+    // Add TTS only after bot reply
+    if(kind==='bot'){
+      const btnWrap = el('div','bot-buttons');
+      const ttsBtn = el('button');
+      ttsBtn.className = 'voice-btn'; // blue round button
+      ttsBtn.innerHTML = '🎤';
+      ttsBtn.title = 'Voice Input';
+      ttsBtn.onclick = toggleVoice;
+      btnWrap.appendChild(ttsBtn);
+      wrap.appendChild(btnWrap);
+    }
+
+    if(kind==='me'){ row.appendChild(wrap); row.appendChild(avatar); }
+    else{ row.appendChild(avatar); row.appendChild(wrap); }
+    return row;
+  }
+
+  function typingRow(){
+    const row = el('div','row bot');
+    const avatar = el('div','avatar bot'); avatar.textContent='BOT';
+    const wrap = el('div'); const bubble = el('div','bubble');
+    bubble.innerHTML='<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span> Typing…';
+    wrap.appendChild(bubble);
+    row.appendChild(avatar); row.appendChild(wrap);
+    return row;
+  }
+
+  function sanitize(html){ const div=el('div'); div.innerText=html; return div.innerHTML; }
+
+  function save(){ localStorage.setItem(STORE_KEY, chat.innerHTML); }
+  function load(){ const s=localStorage.getItem(STORE_KEY); if(s) chat.innerHTML=s; }
+
+  function speakText(text){
+    if(!window.speechSynthesis) return alert('TTS not supported');
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang='en-US';
+    window.speechSynthesis.speak(utter);
+  }
+
+  function toggleVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    return alert('Speech recognition not supported');
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(listening){
+    recognition.stop();
+    listening = false;
+    voiceBtn.style.background = 'var(--brand)'; // reset to send color
+  } else {
+    recognition = new SpeechRecognition();
+    recognition.lang='en-US';
+    recognition.interimResults=false;
+    recognition.maxAlternatives=1;
+    recognition.start();
+    listening = true;
+    voiceBtn.style.background = '#2b7cff'; // optional active color
+    recognition.onresult = e => { input.value = e.results[0][0].transcript; input.focus(); };
+    recognition.onend = () => { listening = false; voiceBtn.style.background = 'var(--brand)'; };
+    recognition.onerror = e => { console.error(e); listening=false; voiceBtn.style.background = 'var(--brand)'; };
+  }
+}
+
+
+  async function send(text){
+    const value = (text ?? input.value).trim();
+    if(!value) return;
+    const userRow = messageRow('me', value);
+    chat.appendChild(userRow);
+    input.value=''; autoGrow(); scrollToEnd(); save();
+
+    const tRow = typingRow(); chat.appendChild(tRow); scrollToEnd();
+
+    try {
+      const res = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: value })
+      });
+      const data = await res.json();
+      tRow.remove();
+      chat.appendChild(messageRow('bot', sanitize(data.reply)));
+      scrollToEnd(); save();
+    } catch(err){
+      tRow.remove();
+      chat.appendChild(messageRow('bot','Error: Could not reach server'));
+      scrollToEnd();
+    }
+  }
+
+  function autoGrow(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,160)+'px'; }
+  input.addEventListener('input', autoGrow);
+  input.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+  sendBtn.addEventListener('click', ()=>send());
+  voiceBtn.addEventListener('click', toggleVoice); // keeps initial input voice as backup
+  clearBtn.addEventListener('click', ()=>{ if(confirm('Clear the entire conversation?')){ chat.innerHTML=''; save(); } });
+
+  // Initialize
+  load();
+  if(!chat.children.length){
+    const welcome = messageRow('bot','Hi, I am SOC Analyst Advisor. Ask me about alerts, incidents, or security events.');
+    chat.appendChild(welcome);
+    save();
+    chat.scrollTop = chat.scrollHeight/2;
+  }
+  scrollToEnd();
+})();
+
+</script>
+</body>
+</html>
